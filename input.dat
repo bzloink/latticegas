@@ -1,0 +1,11 @@
+Comment
+temp        40
+nsnaps      1
+niters      100000
+xdim        10
+ydim        10
+na          50
+nb          50
+eaa         40
+ebb         40
+eab         5

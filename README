@@ -1,0 +1,51 @@
+Two-dimensional square lattice gas model
+by Andrew M. Launder
+
+This program takes a phase-separated square lattice of two molecular types (A and B)
+as the input for the 2D lattice gas model.
+
+Once you've compiled the program, ensure that your working directory containsa file named "input.dat".
+    
+    The first line of this file is a comment line, and has no effect on the program output.
+    Each of the remaining lines should be structured as follows:
+        keyword keyword_value
+    The available keywords are as follows:
+    
+    temp: the temperature of the Boltzmann distribution law (REQUIRED).
+    
+    nsnaps: the number of snapshots (lattices) to produce.
+    
+    niters: the number of iterations used in the Metropolis algorithm.
+    
+    xdim: the first dimension of the lattice (in number of cells).
+    
+    ydim: the second dimension of the lattice (in number of cells).
+    
+    na: the number of A-type molecules.
+    
+    nb: the number of B-type molecules.
+    
+    eaa: the energy of the A-A interactions.
+    
+    ebb: the energy of the B-B interactions.
+    
+    eab: the energy of the A-B interactions.
+    
+Once you have prepared your input file, enter the following into the command line:
+    
+    path/to/executable/latticegas.exe
+    
+This program will write three types of output files:
+    
+    lattice.dat: main output file.
+                 Only one of these will be written.
+                 Contains simulation parameters and initial lattice data,
+                 as well as final lattice data for each snapshot.
+    
+    .energy files: for a given snapshot, the energy of each iteration.
+    
+    .GraphGeod files: for a given snapshot,
+                      the resultant A-A, B-B, and A-B graphs,
+                      formatted as ChemNetworks .GraphGeod outputs.
+
+Note that periodic boundary conditions are in use.
