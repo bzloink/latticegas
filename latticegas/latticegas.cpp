@@ -1,7 +1,7 @@
  /* Two-dimensional square lattice gas model
     by Andrew M. Launder
     
-    Last updated 4.17.2018.
+    Last updated 4.25.2018.
     
     See README for proper code usage. */
 
@@ -302,7 +302,6 @@ int main(int argc, char** argv) {
     }
     
     unsigned long int i, j;
-    int a;
     for (i = 1; i < params->size(); ++i) {
         if ((*params)[i].size() == 1) {
             std::cerr << "Warning: some keywords have unspecified values." << std::endl;
@@ -377,17 +376,42 @@ int main(int argc, char** argv) {
     kb = 1.38065;
     w = eab - 0.5 * eaa - 0.5 * ebb;
     std::vector<double>* probs = new std::vector<double>(z);
+    
+    int a;
     for (a = 0; a < z; ++a) {
-        (*probs)[a] = exp(-((2 * ((double) a) + 2) * w) / (kb * temp));
+        if (temp) {
+            (*probs)[a] = exp(-((2 * ((double) a) + 2) * std::abs(w)) / (kb * temp));
+        }
+        else {
+            (*probs)[a] = 0;
+        }
     }
-    double redtemp = kb * temp / w;
+    double redtemp;
+    if (temp) {
+        if (w) {
+            redtemp = kb * temp / w;
+        }
+        else {
+            redtemp = std::numeric_limits<double>::infinity();
+        }
+    }
+    else {
+        redtemp = 0;
+        nsnaps = niters = 1;
+        std::cerr << "Warning: all possible moves have zero probability. Only initial conditions will be returned." << std::endl;
+    }
     
     std::ofstream datafile("lattice.dat");
     datafile << "Interchange energy (w) = " << w << std::endl;
     datafile << "Reduced temperature (kT / w) = " << redtemp << std::endl;
-    datafile << "Probability of adding [x] A-B intercell interactions:" << std::endl;
-    for (i = 0; i < probs->size(); ++i) {
-        datafile << " " << 2 * (i + 1) << ": " << (*probs)[i] << std::endl;
+    if (redtemp > 0) {
+        datafile << "Probability of adding [x] A-B intercell interactions:" << std::endl;
+    }
+    else if (redtemp < 0) {
+        datafile << "Probability of removing [x] A-B intercell interactions:" << std::endl;
+    }
+    for (a = 0; a < z; ++a) {
+        datafile << " " << 2 * a + 2 << ": " << (*probs)[a] << std::endl;
     }
     
     std::vector<std::vector<unsigned long int>>* initlattice = new std::vector<std::vector<unsigned long int>>(nnodes, std::vector<unsigned long int>(z + 1));
@@ -446,13 +470,13 @@ int main(int argc, char** argv) {
             if (adjint) {
                 nabdiff += 2;
             }
-            if (nabdiff > 0) {
-                prob = (*probs)[nabdiff / 2 - 1];
+            if ((nabdiff > 0 && w > 0) || (nabdiff < 0 && w < 0)) {
+                prob = (*probs)[std::abs(nabdiff) / 2 - 1];
                 if ((distmax(gen) / ((double) RAND_MAX)) <= prob) {
                     probint = 1;
                 }
             }
-            if (nabdiff <= 0 || probint) {
+            if ((nabdiff <= 0 && w > 0) || (nabdiff >= 0 && w < 0) || probint || !w) {
                 probint = 0;
                 nab += nabdiff;
                 if ((*lattice)[molid1][0] == 1) {
@@ -466,7 +490,9 @@ int main(int argc, char** argv) {
             }
             
             if (j == niters - 1) {
-                PrintLattice(datafile, *lattice, nab, xdim, ydim, i + 1);
+                if (temp) {
+                    PrintLattice(datafile, *lattice, nab, xdim, ydim, i + 1);
+                }
                 PrintGraphs(AAgraphfile, BBgraphfile, ABgraphfile, *lattice, nnodes, z);
             }
             totenergy = w * nab + 0.5 * z * (eaa * na + ebb * nb);
