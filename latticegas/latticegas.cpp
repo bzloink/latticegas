@@ -1,7 +1,7 @@
  /* Two-dimensional square lattice gas model
     by Andrew M. Launder
     
-    Last updated 4.25.2018.
+    Last updated 4.27.2018.
     
     See README for proper code usage. */
 
