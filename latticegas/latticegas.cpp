@@ -74,7 +74,7 @@ std::vector<std::vector<std::string>> ReadInput(char* inputfile, unsigned long i
 
 int ParamsCheck(std::vector<std::vector<std::string>> params) {
  /* Returns 1 if input.dat does not contain temp parameter.
-    Returns 0 if input.dat has the expected format.         */
+    Returns 0 if input.dat has the expected format. */
     unsigned long int i;
     for (i = 1; i < params.size(); ++i) {
         if (params[i][0] == "temp" && params[i].size() == 2) {
@@ -184,7 +184,7 @@ void PrintLattice(std::ofstream& outfile, std::vector<std::vector<unsigned long 
 
 std::vector<std::vector<unsigned long int>> EdgeSort(std::vector<std::vector<unsigned long int>> edges, unsigned long int nedges) {
  /* Sorts vectors of edge indices by i) 0th indices; then ii) 1th indices,
-    then deletes doublecounted edges.                                      */
+    then deletes doublecounted edges. */
     unsigned long int nodelist, oldnodelist;
     oldnodelist = 0;
     
