@@ -31,6 +31,10 @@ Once you've compiled the program, ensure that your working directory containsa f
     
     eab: the energy of the A-B interactions.
     
+    color: controls color-coded lattice printing.
+           Default value is "n", indicating that color-coded lattice(s) WILL NOT be printed to std::cout.
+           The other option is "y", indicating that color-coded lattice(s) WILL be printed to std::cout.
+    
 Once you have prepared your input file, enter the following into the command line:
     
     path/to/executable/latticegas.exe

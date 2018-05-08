@@ -1,11 +1,12 @@
 Comment
-temp        40
-nsnaps      1
+temp        100
+nsnaps      5
 niters      100000
-xdim        10
-ydim        10
-na          50
-nb          50
-eaa         40
-ebb         40
-eab         5
+xdim        20
+ydim        20
+na          200
+nb          200
+eaa         1000
+ebb         1000
+eab         861.935
+color       y

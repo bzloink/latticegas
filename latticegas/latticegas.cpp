@@ -1,7 +1,7 @@
  /* Two-dimensional square lattice gas model
     by Andrew M. Launder
     
-    Last updated 4.27.2018.
+    Last updated 05.08.2018.
     
     See README for proper code usage. */
 
@@ -150,8 +150,9 @@ unsigned long int NAB(std::vector<std::vector<unsigned long int>> lattice, unsig
     return nab;
 }
 
-void PrintLattice(std::ofstream& outfile, std::vector<std::vector<unsigned long int>> lattice, unsigned long int nab, unsigned long int xdim, unsigned long int ydim, unsigned long int snap) {
- // Prints simulation parameters.
+void PrintLattice(std::ostream& outfile, std::vector<std::vector<unsigned long int>> lattice, unsigned long int nab, unsigned long int xdim, unsigned long int ydim, unsigned long int snap, int color) {
+ /* If color is 0, then lattice is printed.
+    If color is 1, then ANSI color-coded lattice is printed. */
     if (!snap) {
         outfile << "Initial number of A-B intercell interactions ((n_ab)_i) = ";
     }
@@ -172,10 +173,20 @@ void PrintLattice(std::ofstream& outfile, std::vector<std::vector<unsigned long 
     for (i = 0; i < xdim; ++i) {
         for (j = 0; j < ydim; ++j) {
             if (lattice[i * ydim + j][0] == 1) {
-                outfile << " A";
+                if (!color) {
+                    outfile << " A";
+                }
+                else {
+                    outfile << " \e[31;1mA\e[0m";
+                }
             }
             else {
-                outfile << " B";
+                if (!color) {
+                    outfile << " B";
+                }
+                else {
+                    outfile << " \e[30;1mB\e[0m";
+                }
             }
         }
         outfile << std::endl;
@@ -285,6 +296,7 @@ int main(int argc, char** argv) {
     niters = 50000;
     xdim = ydim = 10;
     na = nb = 50;
+    int color = 0;
     
     std::string inputfilestr = "input.dat";
     char* inputfile = &inputfilestr[0u];
@@ -348,6 +360,14 @@ int main(int argc, char** argv) {
             std::istringstream eabstr((*params)[i][1]);
             eabstr >> eab;
             eab *= -1;
+        }
+        else if ((*params)[i][0] == "color") {
+            if ((*params)[i][1] == "y") {
+                color = 1;
+            }
+            else if ((*params)[i][1] != "n") {
+                std::cerr << "Invalid: please indicate whether or not you would like to print color-coded lattice(s) to std::cout (default value: no)." << std::endl;
+            }
         }
         else {
             std::cerr << "Warning: option \"" << (*params)[i][0] << "\" not yet implemented." << std::endl;
@@ -417,7 +437,10 @@ int main(int argc, char** argv) {
     std::vector<std::vector<unsigned long int>>* initlattice = new std::vector<std::vector<unsigned long int>>(nnodes, std::vector<unsigned long int>(z + 1));
     *initlattice = Lattice(nnodes, xdim, ydim, na, nb);
     unsigned long int initnab = NAB(*initlattice, nnodes, z);
-    PrintLattice(datafile, *initlattice, initnab, xdim, ydim, 0);
+    PrintLattice(datafile, *initlattice, initnab, xdim, ydim, 0, 0);
+    if (color) {
+        PrintLattice(std::cout, *initlattice, initnab, xdim, ydim, 0, color);
+    }
     
     std::vector<std::vector<unsigned long int>>* lattice = new std::vector<std::vector<unsigned long int>>(nnodes, std::vector<unsigned long int>(z + 1));
     double prob, totenergy;
@@ -491,7 +514,10 @@ int main(int argc, char** argv) {
             
             if (j == niters - 1) {
                 if (temp) {
-                    PrintLattice(datafile, *lattice, nab, xdim, ydim, i + 1);
+                    PrintLattice(datafile, *lattice, nab, xdim, ydim, i + 1, 0);
+                    if (color) {
+                        PrintLattice(std::cout, *lattice, nab, xdim, ydim, i + 1, color);
+                    }
                 }
                 PrintGraphs(AAgraphfile, BBgraphfile, ABgraphfile, *lattice, nnodes, z);
             }
