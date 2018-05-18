@@ -1,7 +1,7 @@
  /* Two-dimensional square lattice gas model
     by Andrew M. Launder
     
-    Last updated 05.08.2018.
+    Last updated 05.18.2018.
     
     See README for proper code usage. */
 
@@ -85,19 +85,33 @@ int ParamsCheck(std::vector<std::vector<std::string>> params) {
     return 1;
 }
 
-std::vector<std::vector<unsigned long int>> Lattice(unsigned long int nnodes, unsigned long int xdim, unsigned long int ydim, unsigned long int na, unsigned long int nb) {
- // Generates starting lattice.
+std::vector<std::vector<unsigned long int>> Lattice(unsigned long int nnodes, unsigned long int xdim, unsigned long int ydim, unsigned long int nsmall, int minortype, std::mt19937 gen, std::uniform_int_distribution<unsigned long int> distnodes, std::uniform_int_distribution<unsigned long int> distmax) {
+ // Generates random starting lattice.
     std::vector<std::vector<unsigned long int>> lattice(nnodes, std::vector<unsigned long int>(5));
+    unsigned long int molid, count;
+    count = 0;
+    while (count < nsmall) {
+        molid = distnodes(gen);
+        if (distmax(gen) / ((double) RAND_MAX) <= 0.5 && !lattice[molid][0]) {
+            lattice[molid][0] = minortype;
+            ++count;
+        }
+    }
+    unsigned long int majortype;
+    if (minortype == 1) {
+        majortype = 2;
+    }
+    else {
+        majortype = 1;
+    }
     
     unsigned long int i, j;
     for (i = 0; i < nnodes; ++i) {
-        if (i < na) {
-            lattice[i][0] = 1;
-        }
-        else {
-            lattice[i][0] = 2;
+        if (!lattice[i][0]) {
+            lattice[i][0] = majortype;
         }
     }
+    
     for (i = 0; i < xdim; ++i) {
         for (j = 0; j < ydim; ++j) {
             if (j) {
@@ -151,8 +165,9 @@ unsigned long int NAB(std::vector<std::vector<unsigned long int>> lattice, unsig
 }
 
 void PrintLattice(std::ostream& outfile, std::vector<std::vector<unsigned long int>> lattice, unsigned long int nab, unsigned long int xdim, unsigned long int ydim, unsigned long int snap, int color) {
- /* If color is 0, then lattice is printed.
-    If color is 1, then ANSI color-coded lattice is printed. */
+ /* If color is 0, then lattice is written to file.
+    If color is 1, then lattice is written to file
+    and ANSI color-coded lattice is printed. */
     if (!snap) {
         outfile << "Initial number of A-B intercell interactions ((n_ab)_i) = ";
     }
@@ -421,23 +436,33 @@ int main(int argc, char** argv) {
         std::cerr << "Warning: all possible moves have zero probability. Only initial conditions will be returned." << std::endl;
     }
     
-    std::ofstream datafile("lattice.dat");
-    datafile << "Interchange energy (w) = " << w << std::endl;
-    datafile << "Reduced temperature (kT / w) = " << redtemp << std::endl;
+    std::ofstream outfile("output.dat");
+    outfile << "Interchange energy (w) = " << w << std::endl;
+    outfile << "Reduced temperature (kT / w) = " << redtemp << std::endl;
     if (redtemp > 0) {
-        datafile << "Probability of adding [x] A-B intercell interactions:" << std::endl;
+        outfile << "Probability of adding [x] A-B intercell interactions:" << std::endl;
     }
     else if (redtemp < 0) {
-        datafile << "Probability of removing [x] A-B intercell interactions:" << std::endl;
+        outfile << "Probability of removing [x] A-B intercell interactions:" << std::endl;
     }
     for (a = 0; a < z; ++a) {
-        datafile << " " << 2 * a + 2 << ": " << (*probs)[a] << std::endl;
+        outfile << " " << 2 * a + 2 << ": " << (*probs)[a] << std::endl;
     }
     
+    unsigned long int nsmall;
+    int minortype;
+    if (na <= nb) {
+        nsmall = na;
+        minortype = 1;
+    }
+    else {
+        nsmall = nb;
+        minortype = 2;
+    }
     std::vector<std::vector<unsigned long int>>* initlattice = new std::vector<std::vector<unsigned long int>>(nnodes, std::vector<unsigned long int>(z + 1));
-    *initlattice = Lattice(nnodes, xdim, ydim, na, nb);
+    *initlattice = Lattice(nnodes, xdim, ydim, nsmall, minortype, gen, distnodes, distmax);
     unsigned long int initnab = NAB(*initlattice, nnodes, z);
-    PrintLattice(datafile, *initlattice, initnab, xdim, ydim, 0, 0);
+    PrintLattice(outfile, *initlattice, initnab, xdim, ydim, 0, 0);
     if (color) {
         PrintLattice(std::cout, *initlattice, initnab, xdim, ydim, 0, color);
     }
@@ -514,7 +539,7 @@ int main(int argc, char** argv) {
             
             if (j == niters - 1) {
                 if (temp) {
-                    PrintLattice(datafile, *lattice, nab, xdim, ydim, i + 1, 0);
+                    PrintLattice(outfile, *lattice, nab, xdim, ydim, i + 1, 0);
                     if (color) {
                         PrintLattice(std::cout, *lattice, nab, xdim, ydim, i + 1, color);
                     }

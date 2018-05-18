@@ -4,7 +4,7 @@ by Andrew M. Launder
 This program takes a phase-separated square lattice of two molecular types (A and B)
 as the input for the 2D lattice gas model.
 
-Once you've compiled the program, ensure that your working directory containsa file named "input.dat".
+Once you've compiled the program, ensure that your working directory contains a file named "input.dat".
     
     The first line of this file is a comment line, and has no effect on the program output.
     Each of the remaining lines should be structured as follows:
@@ -41,10 +41,10 @@ Once you have prepared your input file, enter the following into the command lin
     
 This program will write three types of output files:
     
-    lattice.dat: main output file.
-                 Only one of these will be written.
-                 Contains simulation parameters and initial lattice data,
-                 as well as final lattice data for each snapshot.
+    output.dat: main output file.
+                Only one of these will be written.
+                Contains simulation parameters and initial lattice data,
+                as well as final lattice data for each snapshot.
     
     .energy files: for a given snapshot, the energy of each iteration.
     
