@@ -1,7 +1,7 @@
 Two-dimensional square lattice gas model
 by Andrew M. Launder
 
-This program takes a phase-separated square lattice of two molecular types (A and B)
+This program takes a random square lattice of two molecular types (A and B)
 as the input for the 2D lattice gas model.
 
 Once you've compiled the program, ensure that your working directory contains a file named "input.dat".
