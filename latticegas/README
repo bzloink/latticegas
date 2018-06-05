@@ -39,7 +39,7 @@ Once you have prepared your input file, enter the following into the command lin
     
     path/to/executable/latticegas.exe
     
-This program will write three types of output files:
+This program will write four types of output files:
     
     output.dat: main output file.
                 Only one of these will be written.
