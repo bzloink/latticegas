@@ -32,8 +32,8 @@ Once you've compiled the program, ensure that your working directory contains a 
     eab: the energy of the A-B interactions.
     
     color: controls color-coded lattice printing.
-           Default value is "n", indicating that color-coded lattice(s) WILL NOT be printed to std::cout.
-           The other option is "y", indicating that color-coded lattice(s) WILL be printed to std::cout.
+           Default value is "n", indicating that color-coded lattice(s) WILL NOT be printed to the standard output stream.
+           The other option is "y", indicating that color-coded lattice(s) WILL be printed to the standard output stream.
     
 Once you have prepared your input file, enter the following into the command line:
     
@@ -46,10 +46,16 @@ This program will write three types of output files:
                 Contains simulation parameters and initial lattice data,
                 as well as final lattice data for each snapshot.
     
-    .energy files: for a given snapshot, the energy of each iteration.
+    .energy files: for a given snapshot,
+                   the energy of each iteration.
     
     .GraphGeod files: for a given snapshot,
-                      the resultant A-A, B-B, and A-B graphs,
+                      the resultant graph,
+                      as well as the A-A, B-B, and A-B layers,
                       formatted as ChemNetworks .GraphGeod outputs.
-
+    
+    .xyz file: for a given snapshot,
+               the resultant Cartesian coordinates,
+               as well as those for the A-A, B-B, and A-B graph layers.
+    
 Note that periodic boundary conditions are in use.

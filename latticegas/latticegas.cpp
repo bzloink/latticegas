@@ -1,7 +1,7 @@
  /* Two-dimensional square lattice gas model
     by Andrew M. Launder
     
-    Last updated 05.18.2018.
+    Last updated 06.05.2018.
     
     See README for proper code usage. */
 
@@ -208,15 +208,116 @@ void PrintLattice(std::ostream& outfile, std::vector<std::vector<unsigned long i
     }
 }
 
-std::vector<std::vector<unsigned long int>> EdgeSort(std::vector<std::vector<unsigned long int>> edges, unsigned long int nedges) {
- /* Sorts vectors of edge indices by i) 0th indices; then ii) 1th indices,
-    then deletes doublecounted edges. */
+std::vector<int> ABNodes(std::vector<std::vector<unsigned long int>> lattice, unsigned long int nnodes, int z) {
+ /* Returns list of ints indicating present (1) or not present (0) nodes
+    in the given AB edge list.*/
+    std::vector<std::vector<unsigned long int>>* initnodelist = new std::vector<std::vector<unsigned long int>>;
+    std::vector<unsigned long int>* node = new std::vector<unsigned long int>(2);
+    std::vector<unsigned long int>* adjnode = new std::vector<unsigned long int>(2);
+    unsigned long int adjid;
+    
+    unsigned long int i, j;
+    int a;
+    for (i = 0; i < nnodes; ++i) {
+        (*node)[0] = lattice[i][0];
+        (*node)[1] = i + 1;
+        for (a = 1; a < z + 1; ++a) {
+            adjid = lattice[i][a];
+            (*adjnode)[0] = lattice[adjid][0];
+            (*adjnode)[1] = adjid + 1;
+            if (lattice[adjid][0] == lattice[i][0]) {
+                continue;
+            }
+            else {
+                initnodelist->push_back(*node);
+                initnodelist->push_back(*adjnode);
+            }
+        }
+    }
+    delete adjnode;
+    
+    std::vector<std::vector<unsigned long int>>* nodelist = new std::vector<std::vector<unsigned long int>>;
+    (*node)[0] = (*initnodelist)[0][0];
+    (*node)[1] = (*initnodelist)[0][1];
+    nodelist->push_back(*node);
+    for (i = 1; i < initnodelist->size(); ++i) {
+        for (j = 0; j < nodelist->size(); ++j) {
+            if ((*initnodelist)[i][1] == (*nodelist)[j][1]) {
+                break;
+            }
+            if (j == nodelist->size() - 1) {
+                (*node)[0] = (*initnodelist)[i][0];
+                (*node)[1] = (*initnodelist)[i][1];
+                nodelist->push_back(*node);
+            }
+        }
+    }
+    delete initnodelist;
+    delete node;
+    
+    std::vector<int> nodes(nnodes);
+    for (i = 0; i < nnodes; ++i) {
+        nodes[i] = 0;
+    }
+    for (i = 0; i < nodelist->size(); ++i) {
+        nodes[(*nodelist)[i][1] - 1] = (*nodelist)[i][0];
+    }
+    delete nodelist;
+    
+    return nodes;
+}
+
+void PrintXYZs(std::ofstream& xyzfile, std::ofstream& AAxyzfile, std::ofstream& BBxyzfile, std::ofstream& ABxyzfile, std::vector<std::vector<unsigned long int>> lattice, unsigned long int nnodes, unsigned long int na, unsigned long int nb, unsigned long int xdim, unsigned long int ydim, int z) {
+ // Writes .xyz files.
+    xyzfile << nnodes << std::endl;
+    xyzfile << std::endl;
+    AAxyzfile << na << std::endl;
+    AAxyzfile << std::endl;
+    BBxyzfile << nb << std::endl;
+    BBxyzfile << std::endl;
+    std::vector<int>* abnodes = new std::vector<int>(nnodes);
+    *abnodes = ABNodes(lattice, nnodes, z);
+    unsigned long int nabnodes = 0;
+    
+    unsigned long int i, j;
+    for (i = 0; i < nnodes; ++i) {
+        if ((*abnodes)[i]) {
+            ++nabnodes;
+        }
+    }
+    ABxyzfile << nabnodes << std::endl;
+    ABxyzfile << std::endl;
+    
+    for (i = 0; i < xdim; ++i) {
+        for (j = 0; j < ydim; ++j) {
+            if (lattice[i * ydim + j][0] == 1) {
+                xyzfile << "A " << i + 1 << " " << j + 1 << " 0" << std::endl;
+                AAxyzfile << "A " << i + 1 << " " << j + 1 << " 0" << std::endl;
+            }
+            else {
+                xyzfile << "B " << i + 1 << " " << j + 1 << " 0" << std::endl;
+                BBxyzfile << "B " << i + 1 << " " << j + 1 << " 0" << std::endl;
+            }
+            if ((*abnodes)[i * ydim + j] == 1) {
+                ABxyzfile << "A " << i + 1 << " " << j + 1 << " 0" << std::endl;
+            }
+            else if ((*abnodes)[i * ydim + j] == 2) {
+                ABxyzfile << "B " << i + 1 << " " << j + 1 << " 0" << std::endl;
+            }
+        }
+    }
+    delete abnodes;
+}
+
+std::vector<std::vector<double>> EdgeSort(std::vector<std::vector<double>> edges, unsigned long int nedges) {
+ // Sorts vectors of edge indices by i) 0th indices; then ii) 1th indices,
+ // then deletes doublecounted edges. 
     unsigned long int nodelist, oldnodelist;
     oldnodelist = 0;
     
     unsigned long int i;
     for (i = 0; i < nedges; ++i) {
-        std::sort(edges[i].begin(), edges[i].end());
+        std::sort(edges[i].begin(), edges[i].end() - 2);
     }
     
     std::sort(edges.begin(), edges.end(), MySort(0));
@@ -234,7 +335,7 @@ std::vector<std::vector<unsigned long int>> EdgeSort(std::vector<std::vector<uns
         }
     }
     
-    std::vector<std::vector<unsigned long int>> finaledges(nedges / 2, std::vector<unsigned long int>(2));
+    std::vector<std::vector<double>> finaledges(nedges / 2, std::vector<double>(4));
     for (i = 0; i < nedges / 2; ++i) {
         finaledges[i] = edges[2 * i];
     }
@@ -242,41 +343,64 @@ std::vector<std::vector<unsigned long int>> EdgeSort(std::vector<std::vector<uns
     return finaledges;
 }
 
-void PrintGraphs(std::ofstream& AAgraphfile, std::ofstream& BBgraphfile, std::ofstream& ABgraphfile, std::vector<std::vector<unsigned long int>> lattice, unsigned long int nnodes, int z) {
+void PrintGraphs(std::ofstream& graphfile, std::ofstream& AAgraphfile, std::ofstream& BBgraphfile, std::ofstream& ABgraphfile, std::vector<std::vector<unsigned long int>> lattice, unsigned long int nnodes, int z, double eaa, double ebb, double eab) {
  // Writes .GraphGeod files.
-    std::vector<std::vector<unsigned long int>>* AAedges = new std::vector<std::vector<unsigned long int>>;
-    std::vector<std::vector<unsigned long int>>* BBedges = new std::vector<std::vector<unsigned long int>>;
-    std::vector<std::vector<unsigned long int>>* ABedges = new std::vector<std::vector<unsigned long int>>;
-    std::vector<unsigned long int>* edge = new std::vector<unsigned long int>(2);
+    std::vector<double>* energies = new std::vector<double>(3);
+    (*energies)[0] = -1 * eaa;
+    (*energies)[1] = -1 * ebb;
+    (*energies)[2] = -1 * eab;
+    
+    std::vector<std::vector<double>>* edges = new std::vector<std::vector<double>>;
+    std::vector<std::vector<double>>* AAedges = new std::vector<std::vector<double>>;
+    std::vector<std::vector<double>>* BBedges = new std::vector<std::vector<double>>;
+    std::vector<std::vector<double>>* ABedges = new std::vector<std::vector<double>>;
+    std::vector<double>* edge = new std::vector<double>(4);
     unsigned long int adjid;
     
     unsigned long int i;
     int a;
     for (i = 0; i < nnodes; ++i) {
-        (*edge)[0] = i + 1;
+        (*edge)[0] = (double) (i + 1);
         for (a = 1; a < z + 1; ++a) {
             adjid = lattice[i][a];
-            (*edge)[1] = adjid + 1;
+            (*edge)[1] = (double) (adjid + 1);
             if (lattice[adjid][0] == lattice[i][0]) {
                 if (lattice[i][0] == 1) {
+                    (*edge)[2] = (*energies)[0];
+                    (*edge)[3] = 1;
                     AAedges->push_back(*edge);
                 }
                 else {
+                    (*edge)[2] = (*energies)[1];
+                    (*edge)[3] = 2;
                     BBedges->push_back(*edge);
                 }
             }
             else {
+                (*edge)[2] = (*energies)[2];
+                (*edge)[3] = 3;
                 ABedges->push_back(*edge);
             }
+            edges->push_back(*edge);
         }
     }
+    delete energies;
     delete edge;
     
+    *edges = EdgeSort(*edges, edges->size());
+    for (i = 0; i < edges->size(); ++i) {
+        graphfile << (*edges)[i][0] << " " << (*edges)[i][1];
+        for (a = 0; a < 7; ++a) {
+            graphfile << " 0";
+        }
+        graphfile << " " << (*edges)[i][2] << " " << (*edges)[i][3] << std::endl;
+    }
+    delete edges;
     *AAedges = EdgeSort(*AAedges, AAedges->size());
     for (i = 0; i < AAedges->size(); ++i) {
         AAgraphfile << (*AAedges)[i][0] << " " << (*AAedges)[i][1];
         for (a = 0; a < 7; ++a) {
-            AAgraphfile << " " << 0;
+            AAgraphfile << " 0";
         }
         AAgraphfile << std::endl;
     }
@@ -285,7 +409,7 @@ void PrintGraphs(std::ofstream& AAgraphfile, std::ofstream& BBgraphfile, std::of
     for (i = 0; i < BBedges->size(); ++i) {
         BBgraphfile << (*BBedges)[i][0] << " " << (*BBedges)[i][1];
         for (a = 0; a < 7; ++a) {
-            BBgraphfile << " " << 0;
+            BBgraphfile << " 0";
         }
         BBgraphfile << std::endl;
     }
@@ -294,7 +418,7 @@ void PrintGraphs(std::ofstream& AAgraphfile, std::ofstream& BBgraphfile, std::of
     for (i = 0; i < ABedges->size(); ++i) {
         ABgraphfile << (*ABedges)[i][0] << " " << (*ABedges)[i][1];
         for (a = 0; a < 7; ++a) {
-            ABgraphfile << " " << 0;
+            ABgraphfile << " 0";
         }
         ABgraphfile << std::endl;
     }
@@ -476,6 +600,12 @@ int main(int argc, char** argv) {
         *lattice = *initlattice;
         nab = initnab;
         
+        std::ostringstream energyfilestr;
+        energyfilestr << "lattice" << i + 1 << ".energy";
+        std::ofstream energyfile(energyfilestr.str());
+        std::ostringstream graphfilestr;
+        graphfilestr << "lattice" << i + 1 << ".GraphGeod";
+        std::ofstream graphfile(graphfilestr.str());
         std::ostringstream AAgraphfilestr;
         AAgraphfilestr << "AAlattice" << i + 1 << ".GraphGeod";
         std::ofstream AAgraphfile(AAgraphfilestr.str());
@@ -485,9 +615,18 @@ int main(int argc, char** argv) {
         std::ostringstream ABgraphfilestr;
         ABgraphfilestr << "ABlattice" << i + 1 << ".GraphGeod";
         std::ofstream ABgraphfile(ABgraphfilestr.str());
-        std::ostringstream energyfilestr;
-        energyfilestr << "lattice" << i + 1 << ".energy";
-        std::ofstream energyfile(energyfilestr.str());
+        std::ostringstream xyzfilestr;
+        xyzfilestr << "lattice" << i + 1 << ".xyz";
+        std::ofstream xyzfile(xyzfilestr.str());
+        std::ostringstream AAxyzfilestr;
+        AAxyzfilestr << "AAlattice" << i + 1 << ".xyz";
+        std::ofstream AAxyzfile(AAxyzfilestr.str());
+        std::ostringstream BBxyzfilestr;
+        BBxyzfilestr << "BBlattice" << i + 1 << ".xyz";
+        std::ofstream BBxyzfile(BBxyzfilestr.str());
+        std::ostringstream ABxyzfilestr;
+        ABxyzfilestr << "ABlattice" << i + 1 << ".xyz";
+        std::ofstream ABxyzfile(ABxyzfilestr.str());
         
         for (j = 0; j < niters; ++j) {
             adjint = adjcount1 = adjcount2 = 0;
@@ -543,8 +682,9 @@ int main(int argc, char** argv) {
                     if (color) {
                         PrintLattice(std::cout, *lattice, nab, xdim, ydim, i + 1, color);
                     }
+                    PrintXYZs(xyzfile, AAxyzfile, BBxyzfile, ABxyzfile, *lattice, nnodes, na, nb, xdim, ydim, z);
                 }
-                PrintGraphs(AAgraphfile, BBgraphfile, ABgraphfile, *lattice, nnodes, z);
+                PrintGraphs(graphfile, AAgraphfile, BBgraphfile, ABgraphfile, *lattice, nnodes, z, eaa, ebb, eab);
             }
             totenergy = w * nab + 0.5 * z * (eaa * na + ebb * nb);
             energyfile << j + 1 << " " << totenergy << std::endl;
