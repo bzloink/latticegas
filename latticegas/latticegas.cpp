@@ -310,8 +310,8 @@ void PrintXYZs(std::ofstream& xyzfile, std::ofstream& AAxyzfile, std::ofstream& 
 }
 
 std::vector<std::vector<double>> EdgeSort(std::vector<std::vector<double>> edges, unsigned long int nedges) {
- // Sorts vectors of edge indices by i) 0th indices; then ii) 1th indices,
- // then deletes doublecounted edges. 
+ /* Sorts vectors of edge indices by i) 0th indices; then ii) 1th indices,
+    then deletes doublecounted edges. */
     unsigned long int nodelist, oldnodelist;
     oldnodelist = 0;
     
@@ -402,7 +402,7 @@ void PrintGraphs(std::ofstream& graphfile, std::ofstream& AAgraphfile, std::ofst
         for (a = 0; a < 7; ++a) {
             AAgraphfile << " 0";
         }
-        AAgraphfile << std::endl;
+        AAgraphfile << " " << (*AAedges)[i][2] << " " << (*AAedges)[i][3] << std::endl;
     }
     delete AAedges;
     *BBedges = EdgeSort(*BBedges, BBedges->size());
@@ -411,7 +411,7 @@ void PrintGraphs(std::ofstream& graphfile, std::ofstream& AAgraphfile, std::ofst
         for (a = 0; a < 7; ++a) {
             BBgraphfile << " 0";
         }
-        BBgraphfile << std::endl;
+        BBgraphfile << " " << (*BBedges)[i][2] << " " << (*BBedges)[i][3] << std::endl;
     }
     delete BBedges;
     *ABedges = EdgeSort(*ABedges, ABedges->size());
@@ -420,7 +420,7 @@ void PrintGraphs(std::ofstream& graphfile, std::ofstream& AAgraphfile, std::ofst
         for (a = 0; a < 7; ++a) {
             ABgraphfile << " 0";
         }
-        ABgraphfile << std::endl;
+        ABgraphfile << " " << (*ABedges)[i][2] << " " << (*ABedges)[i][3] << std::endl;
     }
     delete ABedges;
 }
