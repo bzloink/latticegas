@@ -1,7 +1,7 @@
  /* Two-dimensional square lattice gas model
     by Andrew M. Launder
     
-    Last updated 06.07.2018.
+    Last updated 07.25.2018.
     
     See README for proper code usage. */
 
@@ -531,15 +531,15 @@ int main(int argc, char** argv) {
     std::uniform_int_distribution<unsigned long int> distmax(0, RAND_MAX);
     
     int z = 4;
-    double kb, w;
-    kb = 1.38065;
+    double r, w;
+    r = 8.31446;
     w = eab - 0.5 * eaa - 0.5 * ebb;
     std::vector<double>* probs = new std::vector<double>(z);
     
     int a;
     for (a = 0; a < z; ++a) {
         if (temp) {
-            (*probs)[a] = exp(-((2 * ((double) a) + 2) * std::abs(w)) / (kb * temp));
+            (*probs)[a] = exp(-((2 * ((double) a) + 2) * std::abs(w)) / (r * temp));
         }
         else {
             (*probs)[a] = 0;
@@ -548,7 +548,7 @@ int main(int argc, char** argv) {
     double redtemp;
     if (temp) {
         if (w) {
-            redtemp = kb * temp / w;
+            redtemp = r * temp / w;
         }
         else {
             redtemp = std::numeric_limits<double>::infinity();

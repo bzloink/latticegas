@@ -6,7 +6,7 @@ xdim        20
 ydim        20
 na          200
 nb          200
-eaa         1000
-ebb         1000
-eab         861.935
+eaa         10000
+ebb         10000
+eab         9168.554
 color       y
