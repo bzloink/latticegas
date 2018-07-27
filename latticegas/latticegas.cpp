@@ -1,7 +1,7 @@
  /* Two-dimensional square lattice gas model
     by Andrew M. Launder
     
-    Last updated 07.25.2018.
+    Last updated 07.27.2018.
     
     See README for proper code usage. */
 
@@ -85,9 +85,9 @@ int ParamsCheck(std::vector<std::vector<std::string>> params) {
     return 1;
 }
 
-std::vector<std::vector<unsigned long int>> Lattice(unsigned long int nnodes, unsigned long int xdim, unsigned long int ydim, unsigned long int nsmall, int minortype, std::mt19937 gen, std::uniform_int_distribution<unsigned long int> distnodes, std::uniform_int_distribution<unsigned long int> distmax) {
+std::vector<std::vector<unsigned long int>> Lattice(unsigned long int nnodes, unsigned long int xdim, unsigned long int ydim, int order, int ncells, unsigned long int nsmall, int minortype, std::mt19937 gen, std::uniform_int_distribution<unsigned long int> distnodes, std::uniform_int_distribution<unsigned long int> distmax) {
  // Generates random starting lattice.
-    std::vector<std::vector<unsigned long int>> lattice(nnodes, std::vector<unsigned long int>(5));
+    std::vector<std::vector<unsigned long int>> lattice(nnodes, std::vector<unsigned long int>(ncells));
     unsigned long int molid, count;
     count = 0;
     while (count < nsmall) {
@@ -137,6 +137,22 @@ std::vector<std::vector<unsigned long int>> Lattice(unsigned long int nnodes, un
             }
             else {
                 lattice[i * ydim + j][4] = j;
+            }
+        }
+    }
+    if (order >= 2) {
+        for (i = 0; i < xdim; ++i) {
+            for (j = 0; j < ydim; ++j) {
+                lattice[i * ydim + j][5] = lattice[lattice[i * ydim + j][1]][3];
+                lattice[i * ydim + j][6] = lattice[lattice[i * ydim + j][2]][3];
+                lattice[i * ydim + j][7] = lattice[lattice[i * ydim + j][1]][4];
+                lattice[i * ydim + j][8] = lattice[lattice[i * ydim + j][2]][4];
+                if (order == 3) {
+                    lattice[i * ydim + j][9] = lattice[lattice[i * ydim + j][1]][1];
+                    lattice[i * ydim + j][10] = lattice[lattice[i * ydim + j][2]][2];
+                    lattice[i * ydim + j][11] = lattice[lattice[i * ydim + j][3]][3];
+                    lattice[i * ydim + j][12] = lattice[lattice[i * ydim + j][4]][4];
+                }
             }
         }
     }
@@ -428,14 +444,15 @@ void PrintGraphs(std::ofstream& graphfile, std::ofstream& AAgraphfile, std::ofst
 int main(int argc, char** argv) {
  // Generates lattice and writes outputs.
     double temp, eaa, ebb, eab;
-    eaa = ebb = 40;
-    eab = 5;
+    eaa = ebb = 10000;
+    eab = 9500;
     unsigned long int nsnaps, niters, xdim, ydim, na, nb;
     nsnaps = 1;
-    niters = 50000;
+    niters = 100000;
     xdim = ydim = 10;
     na = nb = 50;
-    int color = 0;
+    int order, color;
+    order = color = 0;
     
     std::string inputfilestr = "input.dat";
     char* inputfile = &inputfilestr[0u];
@@ -500,6 +517,14 @@ int main(int argc, char** argv) {
             eabstr >> eab;
             eab *= -1;
         }
+        else if ((*params)[i][0] == "entropy") {
+            std::istringstream orderstr((*params)[i][1]);
+            orderstr >> order;
+            if (order < 0 || order > 3) {
+                std::cerr << "If local entropy calculation is requested, order must be 1, 2, or 3. See README." << std::endl;
+                return EXIT_FAILURE;
+            }
+        }
         else if ((*params)[i][0] == "color") {
             if ((*params)[i][1] == "y") {
                 color = 1;
@@ -513,8 +538,23 @@ int main(int argc, char** argv) {
         }
     }
     delete params;
-    if (xdim < 1 || ydim < 1) {
-        std::cerr << "Invalid: lattice dimensions must be positive integers." << std::endl;
+    unsigned long int mindim;
+    if (!order) {
+        mindim = 1;
+    }
+    else if (order <= 2) {
+        mindim = 3;
+    }
+    else {
+        mindim = 5;
+    }
+    if (xdim < mindim || ydim < mindim) {
+        if (mindim == 1) {
+            std::cerr << "Invalid: lattice dimensions must be positive integers." << std::endl;
+        }
+        else {
+            std::cerr << "Invalid: lattice dimensions must be at least " << mindim << " for local entropy order " << order << "." << std::endl;
+        }
         return EXIT_FAILURE;
     }
     unsigned long int nnodes, nanb;
@@ -530,7 +570,17 @@ int main(int argc, char** argv) {
     std::uniform_int_distribution<unsigned long int> distnodes(0, nnodes - 1);
     std::uniform_int_distribution<unsigned long int> distmax(0, RAND_MAX);
     
-    int z = 4;
+    int ncells, z
+    if (order <= 1) {
+        ncells = 5;
+    }
+    else if (order == 2) {
+        ncells = 9;
+    }
+    else {
+        ncells = 13;
+    }
+    z = 4;
     double r, w;
     r = 8.31446;
     w = eab - 0.5 * eaa - 0.5 * ebb;
@@ -584,14 +634,14 @@ int main(int argc, char** argv) {
         minortype = 2;
     }
     std::vector<std::vector<unsigned long int>>* initlattice = new std::vector<std::vector<unsigned long int>>(nnodes, std::vector<unsigned long int>(z + 1));
-    *initlattice = Lattice(nnodes, xdim, ydim, nsmall, minortype, gen, distnodes, distmax);
+    *initlattice = Lattice(nnodes, xdim, ydim, order, ncells, nsmall, minortype, gen, distnodes, distmax);
     unsigned long int initnab = NAB(*initlattice, nnodes, z);
     PrintLattice(outfile, *initlattice, initnab, xdim, ydim, 0, 0);
     if (color) {
         PrintLattice(std::cout, *initlattice, initnab, xdim, ydim, 0, color);
     }
     
-    std::vector<std::vector<unsigned long int>>* lattice = new std::vector<std::vector<unsigned long int>>(nnodes, std::vector<unsigned long int>(z + 1));
+    std::vector<std::vector<unsigned long int>>* lattice = new std::vector<std::vector<unsigned long int>>(nnodes, std::vector<unsigned long int>(ncells + 1));
     double prob, totenergy;
     unsigned long int nab, molid1, moltype1, adjcount1, molid2, moltype2, adjcount2, adjid;
     int nabdiff, adjint, probint;
