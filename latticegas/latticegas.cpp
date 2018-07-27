@@ -570,7 +570,7 @@ int main(int argc, char** argv) {
     std::uniform_int_distribution<unsigned long int> distnodes(0, nnodes - 1);
     std::uniform_int_distribution<unsigned long int> distmax(0, RAND_MAX);
     
-    int ncells, z
+    int ncells, z;
     if (order <= 1) {
         ncells = 5;
     }

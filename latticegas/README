@@ -31,6 +31,10 @@ Once you've compiled the program, ensure that your working directory contains a 
     
     eab: the energy of the A-B interactions.
     
+    entropy: controls local entropy calculation.
+             Default value is 0, indicating that local-state-based entropy WILL NOT be calculated.
+             If a positive integer is entered, this is interpreted as the order at which the local-state-based entropy WILL be calculated.*
+    
     color: controls color-coded lattice printing.
            Default value is "n", indicating that color-coded lattice(s) WILL NOT be printed to the standard output stream.
            The other option is "y", indicating that color-coded lattice(s) WILL be printed to the standard output stream.
@@ -59,3 +63,14 @@ This program will write four types of output files:
                as well as those for the A-A, B-B, and A-B graph layers.
     
 Note that periodic boundary conditions are in use.
+
+*If the local entropy calculation is requested, states are defined according to the following scheme,
+     3
+   2 1 2
+ 3 1 0 1 3
+   2 1 2
+     3
+where cell labeled with a 0 is the cell for which a local state is being defined.
+For a requested order, all cells labeled in this scheme up to that order will be included in the local state definition.
+See Meirovitch, H., Chem. Phys. Lett., 45, 389 (1977) for context
+(note that M = nsnaps in this program, and each final equilibrated configuration is sampled).
