@@ -33,7 +33,8 @@ Once you've compiled the program, ensure that your working directory contains a 
     
     entropy: controls local entropy calculation.
              Default value is 0, indicating that local-state-based entropy WILL NOT be calculated.
-             If a positive integer is entered, this is interpreted as the order at which the local-state-based entropy WILL be calculated.*
+             If a positive integer is entered,
+             this is interpreted as the order at which the local-state-based entropy WILL be calculated.*
     
     color: controls color-coded lattice printing.
            Default value is "n", indicating that color-coded lattice(s) WILL NOT be printed to the standard output stream.
