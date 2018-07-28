@@ -1,7 +1,7 @@
  /* Two-dimensional square lattice gas model
     by Andrew M. Launder
     
-    Last updated 07.27.2018.
+    Last updated 07.28.2018.
     
     See README for proper code usage. */
 
@@ -85,7 +85,7 @@ int ParamsCheck(std::vector<std::vector<std::string>> params) {
     return 1;
 }
 
-std::vector<std::vector<unsigned long int>> Lattice(unsigned long int nnodes, unsigned long int xdim, unsigned long int ydim, int order, int ncells, unsigned long int nsmall, int minortype, std::mt19937 gen, std::uniform_int_distribution<unsigned long int> distnodes, std::uniform_int_distribution<unsigned long int> distmax) {
+std::vector<std::vector<unsigned long int>> Lattice(unsigned long int nnodes, unsigned long int xdim, unsigned long int ydim, int order, unsigned long int ncells, unsigned long int nsmall, int minortype, std::mt19937 gen, std::uniform_int_distribution<unsigned long int> distnodes, std::uniform_int_distribution<unsigned long int> distmax) {
  // Generates random starting lattice.
     std::vector<std::vector<unsigned long int>> lattice(nnodes, std::vector<unsigned long int>(ncells));
     unsigned long int molid, count;
@@ -222,6 +222,195 @@ void PrintLattice(std::ostream& outfile, std::vector<std::vector<unsigned long i
         }
         outfile << std::endl;
     }
+}
+
+std::vector<std::vector<unsigned long int>> VecSort(std::vector<std::vector<unsigned long int>> vecs, unsigned long int nvecs, unsigned long int nelems) {
+ /* Sorts vector of vectors, giving precedence to low-index elements in each vector.
+    Note that VecSort() ignores 0th column and assumes 1th column is sorted. */
+    std::vector<std::vector<unsigned long int>>* paramcounts = new std::vector<std::vector<unsigned long int>>(nelems - 1);
+    unsigned long int paramcount, oldparamcount, begincount, endcount;
+    paramcount = oldparamcount = 0;
+    
+    unsigned long int i, j, k;
+    for (i = 2; i < nelems + 1; ++i) {
+        for (j = 1; j < nvecs + 1; ++j) {
+            for (k = 1; k < i; ++k) {
+                if (j == nvecs) {
+                    continue;
+                }
+                if (vecs[j][k] == vecs[j - 1][k]) {
+                    ++paramcount;
+                }
+            }
+            if (paramcount && !(paramcount % (i - 1)) && oldparamcount != paramcount) {
+                oldparamcount = paramcount;
+                continue;
+            }
+            else {
+                (*paramcounts)[i - 2].push_back(paramcount / (i - 1) + 1);
+                paramcount = oldparamcount = 0;
+            }
+        }
+        begincount = 0;
+        endcount = nvecs;
+        for (j = 0; j < (*paramcounts)[i - 2].size(); ++j) {
+            endcount -= (*paramcounts)[i - 2][j];
+            std::sort(vecs.begin() + begincount, vecs.end() - endcount, MySort(i));
+            begincount += (*paramcounts)[i - 2][j];
+        }
+    }
+    delete paramcounts;
+    
+    return vecs;
+}
+
+std::vector<std::vector<unsigned long int>> EntropyDist(std::vector<std::vector<unsigned long int>> localstates, unsigned long int nnodes, unsigned long int ncells) {
+ // Bins local states for entropy calculation.
+    int continueint = 0;
+    unsigned long int count, sizecomp, nstates;
+    count = sizecomp = nstates = 0;
+    
+    std::vector<unsigned long int>* bin = new std::vector<unsigned long int>(nnodes);
+    std::vector<unsigned long int>* states = new std::vector<unsigned long int>(nnodes);
+    
+    unsigned long int i, j, k;
+    for (i = 0; i < nnodes; ++i) {
+        (*states)[i] = nnodes;
+    }
+    for (i = 0; i < nnodes; ++i) {
+        (*bin)[i] = 0;
+        for (j = 0; j < nnodes; ++j) {
+            if (i == (*states)[j]) {
+                continueint = 1;
+                break;
+            }
+        }
+        if (continueint == 1) {
+            continueint = 0;
+            continue;
+        }
+        for (j = 0; j < nnodes; ++j) {
+            for (k = 0; k < localstates[j].size(); ++k) {
+                if (localstates[i][k] == localstates[j][k]) {
+                    ++sizecomp;
+                }
+            }
+            if (sizecomp == localstates[j].size()) {
+                ++(*bin)[i];
+                (*states)[count] = j;
+                ++count;
+            }
+            sizecomp = 0;
+        }
+    }
+    delete states;
+    count = 0;
+    
+    for (i = 0; i < nnodes; ++i) {
+        if ((*bin)[i]) {
+            ++nstates;
+        }
+    }
+    std::vector<std::vector<unsigned long int>> dist(nstates, std::vector<unsigned long int>(ncells + 1));
+    for (i = 0; i < nnodes; ++i) {
+        if ((*bin)[i]) {
+            dist[count][0] = (*bin)[i];
+            ++count;
+        }
+    }
+    count = 0;
+    for (i = 0; i < nnodes; ++i) {
+        if ((*bin)[i]) {
+            for (j = 0; j < localstates[i].size(); ++j) {
+                dist[count][j + 1] = localstates[i][j];
+            }
+            ++count;
+        }
+    }
+    delete bin;
+    
+    std::sort(dist.begin(), dist.end(), MySort(1));
+    if (ncells > 1) {
+        dist = VecSort(dist, nstates, ncells);
+    }
+    
+    return dist;
+}
+
+double Entropy(std::vector<std::vector<unsigned long int>> dist, unsigned long int nnodes, unsigned long int ncells) {
+ // Determines local entropy up to given order.
+    std::vector<std::vector<double>>* allvs = new std::vector<std::vector<double>>;
+    std::vector<double>* vs = new std::vector<double>(3);
+    unsigned long int bstart, vtot, va, vb;
+    vtot = va = vb = 0;
+    int continueint = 0;
+    
+    unsigned long int i, j, k;
+    for (i = 0; i < dist.size(); ++i) {
+        if (dist[i][1] == 2) {
+            bstart = i;
+            break;
+        }
+    }
+    std::vector<int>* matches = new std::vector<int>(dist.size() - bstart);
+    for (i = 0; i < matches->size(); ++i) {
+        (*matches)[i] = 0;
+    }
+    for (i = 0; i < dist.size(); ++i) {
+        if (dist[i][1] == 1) {
+            vtot = va = dist[i][0];
+            for (j = bstart; j < dist.size(); ++j) {
+                if (!(*matches)[j - bstart]) {
+                    for (k = 2; k < ncells + 1; ++k) {
+                        if (dist[i][k] != dist[j][k]) {
+                            continueint = 1;
+                            break;
+                        }
+                    }
+                    if (continueint) {
+                        continueint = 0;
+                        continue;
+                    }
+                    (*matches)[j - bstart] = 1;
+                    vb = dist[j][0];
+                    vtot += vb;
+                    break;
+                }
+            }
+        }
+        else {
+            if ((*matches)[i - bstart]) {
+                continue;
+            }
+            vtot = vb = dist[i][0];
+        }
+        (*vs)[0] = (double) vtot;
+        (*vs)[1] = (double) va;
+        (*vs)[2] = (double) vb;
+        allvs->push_back(*vs);
+        if (vtot) {
+            vtot = 0;
+        }
+        if (va) {
+            va = 0;
+        }
+        if (vb) {
+            vb = 0;
+        }
+    }
+    delete vs;
+    delete matches;
+    
+    double entropy = 0;
+    for (i = 0; i < allvs->size(); ++i) {
+        if ((*allvs)[i][1] && (*allvs)[i][2]) {
+            entropy -= (*allvs)[i][1] * log((*allvs)[i][1] / (*allvs)[i][0]);
+            entropy -= (*allvs)[i][2] * log((*allvs)[i][2] / (*allvs)[i][0]);
+        }
+    }
+    delete allvs;
+    
+    return entropy;
 }
 
 std::vector<int> ABNodes(std::vector<std::vector<unsigned long int>> lattice, unsigned long int nnodes, int z) {
@@ -469,7 +658,7 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
     
-    unsigned long int i, j;
+    unsigned long int i, j, k, l;
     for (i = 1; i < params->size(); ++i) {
         if ((*params)[i].size() == 1) {
             std::cerr << "Warning: some keywords have unspecified values." << std::endl;
@@ -570,7 +759,7 @@ int main(int argc, char** argv) {
     std::uniform_int_distribution<unsigned long int> distnodes(0, nnodes - 1);
     std::uniform_int_distribution<unsigned long int> distmax(0, RAND_MAX);
     
-    int ncells, z;
+    unsigned long int ncells;
     if (order <= 1) {
         ncells = 5;
     }
@@ -580,7 +769,7 @@ int main(int argc, char** argv) {
     else {
         ncells = 13;
     }
-    z = 4;
+    int z = 4;
     double r, w;
     r = 8.31446;
     w = eab - 0.5 * eaa - 0.5 * ebb;
@@ -642,8 +831,10 @@ int main(int argc, char** argv) {
     }
     
     std::vector<std::vector<unsigned long int>>* lattice = new std::vector<std::vector<unsigned long int>>(nnodes, std::vector<unsigned long int>(ncells + 1));
-    double prob, totenergy;
-    unsigned long int nab, molid1, moltype1, adjcount1, molid2, moltype2, adjcount2, adjid;
+    std::vector<std::vector<unsigned long int>>* localstates = new std::vector<std::vector<unsigned long int>>(nnodes, std::vector<unsigned long int>(ncells));
+    std::vector<std::vector<unsigned long int>>* entropydist = new std::vector<std::vector<unsigned long int>>(nnodes, std::vector<unsigned long int>(ncells + 1));
+    double prob, totenergy, entropy, totentropy;
+    unsigned long int nab, molid1, moltype1, adjcount1, molid2, moltype2, adjcount2, adjid, stateid;
     int nabdiff, adjint, probint;
     adjint = probint = 0;
     for (i = 0; i < nsnaps; ++i) {
@@ -727,6 +918,17 @@ int main(int argc, char** argv) {
             }
             
             if (j == niters - 1) {
+                if (order) {
+                    for (k = 0; k < nnodes; ++k) {
+                        (*localstates)[k][0] = (*lattice)[k][0];
+                        for (l = 1; l < ncells; ++l) {
+                            stateid = (*lattice)[k][l];
+                            (*localstates)[k][l] = (*lattice)[stateid][0];
+                        }
+                    }
+                    *entropydist = EntropyDist(*localstates, nnodes, ncells);
+                    entropy = Entropy(*entropydist, nnodes, ncells);
+                }
                 if (temp) {
                     PrintLattice(outfile, *lattice, nab, xdim, ydim, i + 1, 0);
                     if (color) {
@@ -739,10 +941,20 @@ int main(int argc, char** argv) {
             totenergy = w * nab + 0.5 * z * (eaa * na + ebb * nb);
             energyfile << j + 1 << " " << totenergy << std::endl;
         }
+        if (order) {
+            totentropy += entropy;
+        }
     }
     delete probs;
     delete initlattice;
     delete lattice;
+    delete localstates;
+    delete entropydist;
+    if (order) {
+        totentropy *= r;
+        totentropy /= (double) nsnaps;
+        outfile << "Order-" << order << " entropy = " << totentropy << std::endl;
+    }
     
     return 0;
 }
