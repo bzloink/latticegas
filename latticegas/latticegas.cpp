@@ -726,7 +726,7 @@ int main(int argc, char** argv) {
             std::istringstream orderstr((*params)[i][1]);
             orderstr >> order;
             if (order < 0 || order > 5) {
-                std::cerr << "If local entropy calculation is requested, order must be 1, 2, or 3. See README." << std::endl;
+                std::cerr << "If local entropy calculation is requested, order must be 1, 2, 3, 4, or 5. See README." << std::endl;
                 return EXIT_FAILURE;
             }
         }
