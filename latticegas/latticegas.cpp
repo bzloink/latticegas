@@ -1,7 +1,7 @@
  /* Two-dimensional square lattice gas model
     by Andrew M. Launder
     
-    Last updated 07.28.2018.
+    Last updated 08.06.2018.
     
     See README for proper code usage. */
 
@@ -147,11 +147,27 @@ std::vector<std::vector<unsigned long int>> Lattice(unsigned long int nnodes, un
                 lattice[i * ydim + j][6] = lattice[lattice[i * ydim + j][2]][3];
                 lattice[i * ydim + j][7] = lattice[lattice[i * ydim + j][1]][4];
                 lattice[i * ydim + j][8] = lattice[lattice[i * ydim + j][2]][4];
-                if (order == 3) {
+                if (order >= 3) {
                     lattice[i * ydim + j][9] = lattice[lattice[i * ydim + j][1]][1];
                     lattice[i * ydim + j][10] = lattice[lattice[i * ydim + j][2]][2];
                     lattice[i * ydim + j][11] = lattice[lattice[i * ydim + j][3]][3];
                     lattice[i * ydim + j][12] = lattice[lattice[i * ydim + j][4]][4];
+                    if (order >= 4) {
+                        lattice[i * ydim + j][13] = lattice[lattice[i * ydim + j][9]][3];
+                        lattice[i * ydim + j][14] = lattice[lattice[i * ydim + j][9]][4];
+                        lattice[i * ydim + j][15] = lattice[lattice[i * ydim + j][10]][3];
+                        lattice[i * ydim + j][16] = lattice[lattice[i * ydim + j][10]][4];
+                        lattice[i * ydim + j][17] = lattice[lattice[i * ydim + j][11]][1];
+                        lattice[i * ydim + j][18] = lattice[lattice[i * ydim + j][11]][2];
+                        lattice[i * ydim + j][19] = lattice[lattice[i * ydim + j][12]][1];
+                        lattice[i * ydim + j][20] = lattice[lattice[i * ydim + j][12]][2];
+                        if (order == 5) {
+                            lattice[i * ydim + j][21] = lattice[lattice[i * ydim + j][9]][1];
+                            lattice[i * ydim + j][22] = lattice[lattice[i * ydim + j][10]][2];
+                            lattice[i * ydim + j][23] = lattice[lattice[i * ydim + j][12]][3];
+                            lattice[i * ydim + j][24] = lattice[lattice[i * ydim + j][13]][4];
+                        }
+                    }
                 }
             }
         }
@@ -709,7 +725,7 @@ int main(int argc, char** argv) {
         else if ((*params)[i][0] == "entropy") {
             std::istringstream orderstr((*params)[i][1]);
             orderstr >> order;
-            if (order < 0 || order > 3) {
+            if (order < 0 || order > 5) {
                 std::cerr << "If local entropy calculation is requested, order must be 1, 2, or 3. See README." << std::endl;
                 return EXIT_FAILURE;
             }
@@ -734,8 +750,11 @@ int main(int argc, char** argv) {
     else if (order <= 2) {
         mindim = 3;
     }
-    else {
+    else if (order <= 4) {
         mindim = 5;
+    }
+    else {
+        mindim = 7;
     }
     if (xdim < mindim || ydim < mindim) {
         if (mindim == 1) {
@@ -766,8 +785,14 @@ int main(int argc, char** argv) {
     else if (order == 2) {
         ncells = 9;
     }
-    else {
+    else if (order == 3) {
         ncells = 13;
+    }
+    else if (order == 4) {
+        ncells = 21;
+    }
+    else {
+        ncells = 25;
     }
     int z = 4;
     double r, w;
