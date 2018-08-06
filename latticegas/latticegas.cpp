@@ -164,8 +164,8 @@ std::vector<std::vector<unsigned long int>> Lattice(unsigned long int nnodes, un
                         if (order == 5) {
                             lattice[i * ydim + j][21] = lattice[lattice[i * ydim + j][9]][1];
                             lattice[i * ydim + j][22] = lattice[lattice[i * ydim + j][10]][2];
-                            lattice[i * ydim + j][23] = lattice[lattice[i * ydim + j][12]][3];
-                            lattice[i * ydim + j][24] = lattice[lattice[i * ydim + j][13]][4];
+                            lattice[i * ydim + j][23] = lattice[lattice[i * ydim + j][11]][3];
+                            lattice[i * ydim + j][24] = lattice[lattice[i * ydim + j][12]][4];
                         }
                     }
                 }
